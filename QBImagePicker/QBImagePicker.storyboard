@@ -203,6 +203,9 @@
                                                 <constraint firstAttribute="right" secondItem="m99-yj-HSc" secondAttribute="right" constant="4" id="aQv-HN-dQG"/>
                                             </constraints>
                                         </view>
+                                        <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" style="whiteLarge" translatesAutoresizingMaskIntoConstraints="NO" id="AHc-4a-aK6">
+                                            <rect key="frame" x="20.5" y="20.5" width="37" height="37"/>
+                                        </activityIndicatorView>
                                     </subviews>
                                     <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
                                 </view>
@@ -216,9 +219,11 @@
                                     <constraint firstItem="BwJ-KE-LWZ" firstAttribute="top" secondItem="fc0-k1-HNL" secondAttribute="top" id="UJz-U6-yN2"/>
                                     <constraint firstAttribute="trailing" secondItem="BwJ-KE-LWZ" secondAttribute="trailing" id="ViU-xg-jBz"/>
                                     <constraint firstItem="BwJ-KE-LWZ" firstAttribute="leading" secondItem="fc0-k1-HNL" secondAttribute="leading" id="cOY-Et-5UE"/>
+                                    <constraint firstItem="AHc-4a-aK6" firstAttribute="centerY" secondItem="fc0-k1-HNL" secondAttribute="centerY" id="e77-aT-NuM"/>
                                     <constraint firstAttribute="bottom" secondItem="0aq-fn-r9R" secondAttribute="bottom" id="iIA-2y-gLa"/>
                                     <constraint firstAttribute="bottom" secondItem="BwJ-KE-LWZ" secondAttribute="bottom" id="jYP-8U-0SU"/>
                                     <constraint firstItem="uyS-Tg-Iyl" firstAttribute="top" secondItem="fc0-k1-HNL" secondAttribute="top" id="q37-T4-cB2"/>
+                                    <constraint firstItem="AHc-4a-aK6" firstAttribute="centerX" secondItem="fc0-k1-HNL" secondAttribute="centerX" id="sjW-cf-eBh"/>
                                 </constraints>
                                 <variation key="default">
                                     <mask key="constraints">
@@ -226,6 +231,7 @@
                                     </mask>
                                 </variation>
                                 <connections>
+                                    <outlet property="activityIndicatorView" destination="AHc-4a-aK6" id="oAi-fg-9ao"/>
                                     <outlet property="imageView" destination="0aq-fn-r9R" id="smK-ma-TWL"/>
                                     <outlet property="overlayView" destination="uyS-Tg-Iyl" id="N6m-w2-m4M"/>
                                     <outlet property="videoIndicatorView" destination="BwJ-KE-LWZ" id="HkB-Dc-nzF"/>
