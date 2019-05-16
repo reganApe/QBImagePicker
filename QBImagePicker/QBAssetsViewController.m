@@ -683,23 +683,39 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
 
 - (BOOL)isLocalAsset:(PHAsset *)asset
 {
-    if ([self.downloadingAssets containsObject:asset]) {
-        return NO;
+    __block BOOL isLocalAsset = YES;
+
+    if (asset.mediaType == PHAssetMediaTypeVideo) {
+        PHVideoRequestOptions *options = [[PHVideoRequestOptions alloc] init];
+        options.version = PHVideoRequestOptionsVersionOriginal;
+        options.deliveryMode = PHVideoRequestOptionsDeliveryModeHighQualityFormat;
+        options.networkAccessAllowed = NO;
+
+        dispatch_group_t group = dispatch_group_create();
+        dispatch_group_enter(group);
+        [self.imageManager requestAVAssetForVideo:asset
+                                          options:options
+                                    resultHandler:^(AVAsset * _Nullable asset, AVAudioMix * _Nullable audioMix, NSDictionary * _Nullable info) {
+                                        isLocalAsset = (asset != nil);
+                                        dispatch_group_leave(group);
+        }];
+        dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+    }
+    else if (asset.mediaType == PHAssetMediaTypeImage) {
+        PHImageRequestOptions *options = [[PHImageRequestOptions alloc] init];
+        options.version = PHImageRequestOptionsVersionOriginal;
+        options.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
+        options.resizeMode = PHImageRequestOptionsResizeModeNone;
+        options.networkAccessAllowed = NO;
+        options.synchronous = YES;
+        [self.imageManager requestImageDataForAsset:asset
+                                            options:options
+                                      resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
+                                          isLocalAsset = (imageData != nil);
+        }];
     }
 
-    PHImageRequestOptions *options = [[PHImageRequestOptions alloc] init];
-    options.networkAccessAllowed = NO;
-    options.synchronous = YES;
-
-    __block BOOL isLocal = YES;
-    [self.imageManager requestImageDataForAsset:asset
-                                        options:options
-                                  resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
-                                      if ([info[PHImageResultIsInCloudKey] boolValue]) {
-                                          isLocal = NO;
-                                      }
-                                  }];
-    return isLocal;
+    return isLocalAsset;
 }
 
 - (void)downloadAsset:(PHAsset *)asset forCell:(QBAssetCell *)cell
@@ -711,24 +727,28 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
     [self.downloadingAssets addObject:asset];
     [cell.activityIndicatorView startAnimating];
 
-    PHImageRequestOptions *options = [[PHImageRequestOptions alloc] init];
+    NSArray *assetResources = [PHAssetResource assetResourcesForAsset:asset];
+    PHAssetResource *assetResource = assetResources.firstObject;
+
+    PHAssetResourceRequestOptions *options = [[PHAssetResourceRequestOptions alloc] init];
     options.networkAccessAllowed = YES;
 
     __weak typeof(self) weakself = self;
-    [self.imageManager requestImageDataForAsset:asset
-                                        options:options
-                                  resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
-                                      [weakself.downloadingAssets removeObject:asset];
-                                      [cell.activityIndicatorView stopAnimating];
+    [PHAssetResourceManager.defaultManager requestDataForAssetResource:assetResource options:options dataReceivedHandler:^(NSData * _Nonnull data) {
+    } completionHandler:^(NSError * _Nullable error) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [weakself.downloadingAssets removeObject:asset];
+            [cell.activityIndicatorView stopAnimating];
 
-                                      if (!imageData) {
-                                          UIAlertController *alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Cannot Download Photo", nil)
-                                                                                                                   message:NSLocalizedString(@"There was an error downloading this photo from your iCloud Photos. Please try again later.", nil)
-                                                                                                            preferredStyle:UIAlertControllerStyleAlert];
-                                          [alertController addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"Ok", nil) style:UIAlertActionStyleDefault handler:nil]];
-                                          [weakself presentViewController:alertController animated:YES completion:nil];
-                                      }
-                                  }];
+            if (error) {
+                UIAlertController *alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Cannot Download Photo", nil)
+                                                                                         message:NSLocalizedString(@"There was an error downloading this photo from your iCloud Photos. Please try again later.", nil)
+                                                                                  preferredStyle:UIAlertControllerStyleAlert];
+                [alertController addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"Ok", nil) style:UIAlertActionStyleDefault handler:nil]];
+                [weakself presentViewController:alertController animated:YES completion:nil];
+            }
+        });
+    }];
 }
 
 @end
