@@ -565,6 +565,14 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
 
 - (BOOL)collectionView:(UICollectionView *)collectionView shouldSelectItemAtIndexPath:(NSIndexPath *)indexPath
 {
+    PHAsset *asset = self.fetchResult[indexPath.item];
+
+    if (![self isLocalAsset:asset]) {
+        QBAssetCell *cell = (QBAssetCell *)[self.collectionView cellForItemAtIndexPath:indexPath];
+        [self downloadAsset:asset forCell:cell];
+        return NO;
+    }
+
     if ([self.imagePickerController.delegate respondsToSelector:@selector(qb_imagePickerController:shouldSelectAsset:)]) {
         PHAsset *asset = self.fetchResult[indexPath.item];
         return [self.imagePickerController.delegate qb_imagePickerController:self.imagePickerController shouldSelectAsset:asset];
@@ -668,6 +676,59 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
     CGFloat width = (CGRectGetWidth(self.view.frame) - 2.0 * (numberOfColumns - 1)) / numberOfColumns;
     
     return CGSizeMake(width, width);
+}
+
+
+#pragma mark - Check and Download Assets
+
+- (BOOL)isLocalAsset:(PHAsset *)asset
+{
+    if ([self.downloadingAssets containsObject:asset]) {
+        return NO;
+    }
+
+    PHImageRequestOptions *options = [[PHImageRequestOptions alloc] init];
+    options.networkAccessAllowed = NO;
+    options.synchronous = YES;
+
+    __block BOOL isLocal = YES;
+    [self.imageManager requestImageDataForAsset:asset
+                                        options:options
+                                  resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
+                                      if ([info[PHImageResultIsInCloudKey] boolValue]) {
+                                          isLocal = NO;
+                                      }
+                                  }];
+    return isLocal;
+}
+
+- (void)downloadAsset:(PHAsset *)asset forCell:(QBAssetCell *)cell
+{
+    if ([self.downloadingAssets containsObject:asset]) {
+        return;
+    }
+
+    [self.downloadingAssets addObject:asset];
+    [cell.activityIndicatorView startAnimating];
+
+    PHImageRequestOptions *options = [[PHImageRequestOptions alloc] init];
+    options.networkAccessAllowed = YES;
+
+    __weak typeof(self) weakself = self;
+    [self.imageManager requestImageDataForAsset:asset
+                                        options:options
+                                  resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
+                                      [weakself.downloadingAssets removeObject:asset];
+                                      [cell.activityIndicatorView stopAnimating];
+
+                                      if (!imageData) {
+                                          UIAlertController *alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Cannot Download Photo", nil)
+                                                                                                                   message:NSLocalizedString(@"There was an error downloading this photo from your iCloud Photos. Please try again later.", nil)
+                                                                                                            preferredStyle:UIAlertControllerStyleAlert];
+                                          [alertController addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"Ok", nil) style:UIAlertActionStyleDefault handler:nil]];
+                                          [weakself presentViewController:alertController animated:YES completion:nil];
+                                      }
+                                  }];
 }
 
 @end
