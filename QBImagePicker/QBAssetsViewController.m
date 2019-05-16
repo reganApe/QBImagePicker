@@ -65,6 +65,7 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
 
 @property (nonatomic, assign) BOOL disableScrollToBottom;
 @property (nonatomic, strong) NSIndexPath *lastSelectedItemIndexPath;
+@property (nonatomic, strong) NSMutableSet *downloadingAssets;
 
 @end
 
@@ -79,6 +80,8 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
     
     // Register observer
     [[PHPhotoLibrary sharedPhotoLibrary] registerChangeObserver:self];
+
+    self.downloadingAssets = [NSMutableSet set];
 }
 
 - (void)viewWillAppear:(BOOL)animated
@@ -483,6 +486,12 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
         cell.videoIndicatorView.hidden = YES;
     }
     
+    if ([self.downloadingAssets containsObject:asset]) {
+        [cell.activityIndicatorView startAnimating];
+    } else {
+        [cell.activityIndicatorView stopAnimating];
+    }
+
     // Selection state
     if ([self.imagePickerController.selectedAssets containsObject:asset]) {
         [cell setSelected:YES];
