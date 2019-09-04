@@ -687,7 +687,7 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
 
     if (asset.mediaType == PHAssetMediaTypeVideo) {
         PHVideoRequestOptions *options = [[PHVideoRequestOptions alloc] init];
-        options.version = PHVideoRequestOptionsVersionOriginal;
+        options.version = PHVideoRequestOptionsVersionCurrent;
         options.deliveryMode = PHVideoRequestOptionsDeliveryModeHighQualityFormat;
         options.networkAccessAllowed = NO;
 
@@ -703,7 +703,7 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
     }
     else if (asset.mediaType == PHAssetMediaTypeImage) {
         PHImageRequestOptions *options = [[PHImageRequestOptions alloc] init];
-        options.version = PHImageRequestOptionsVersionOriginal;
+        options.version = PHImageRequestOptionsVersionCurrent;
         options.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
         options.resizeMode = PHImageRequestOptionsResizeModeNone;
         options.networkAccessAllowed = NO;
@@ -727,28 +727,55 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
     [self.downloadingAssets addObject:asset];
     [cell.activityIndicatorView startAnimating];
 
-    NSArray *assetResources = [PHAssetResource assetResourcesForAsset:asset];
-    PHAssetResource *assetResource = assetResources.firstObject;
-
-    PHAssetResourceRequestOptions *options = [[PHAssetResourceRequestOptions alloc] init];
-    options.networkAccessAllowed = YES;
-
     __weak typeof(self) weakself = self;
-    [PHAssetResourceManager.defaultManager requestDataForAssetResource:assetResource options:options dataReceivedHandler:^(NSData * _Nonnull data) {
-    } completionHandler:^(NSError * _Nullable error) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [weakself.downloadingAssets removeObject:asset];
-            [cell.activityIndicatorView stopAnimating];
 
-            if (error) {
-                UIAlertController *alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Cannot Download Photo", nil)
-                                                                                         message:NSLocalizedString(@"There was an error downloading this photo from your iCloud Photos. Please try again later.", nil)
-                                                                                  preferredStyle:UIAlertControllerStyleAlert];
-                [alertController addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"Ok", nil) style:UIAlertActionStyleDefault handler:nil]];
-                [weakself presentViewController:alertController animated:YES completion:nil];
-            }
-        });
-    }];
+    if (asset.mediaType == PHAssetMediaTypeVideo) {
+        PHVideoRequestOptions *options = [[PHVideoRequestOptions alloc] init];
+        options.version = PHVideoRequestOptionsVersionCurrent;
+        options.deliveryMode = PHVideoRequestOptionsDeliveryModeHighQualityFormat;
+        options.networkAccessAllowed = YES;
+
+        [self.imageManager requestAVAssetForVideo:asset
+                                          options:options
+                                    resultHandler:^(AVAsset * _Nullable asset, AVAudioMix * _Nullable audioMix, NSDictionary * _Nullable info) {
+                                        dispatch_async(dispatch_get_main_queue(), ^{
+                                            [weakself.downloadingAssets removeObject:asset];
+                                            [cell.activityIndicatorView stopAnimating];
+
+                                            if (!asset) {
+                                                UIAlertController *alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Cannot Download Video", nil)
+                                                                                                                         message:NSLocalizedString(@"There was an error downloading this item from your iCloud Library. Please try again later.", nil)
+                                                                                                                  preferredStyle:UIAlertControllerStyleAlert];
+                                                [alertController addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"Ok", nil) style:UIAlertActionStyleDefault handler:nil]];
+                                                [weakself presentViewController:alertController animated:YES completion:nil];
+                                            }
+                                        });
+                                    }];
+    }
+    else if (asset.mediaType == PHAssetMediaTypeImage) {
+        PHImageRequestOptions *options = [[PHImageRequestOptions alloc] init];
+        options.version = PHImageRequestOptionsVersionCurrent;
+        options.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
+        options.resizeMode = PHImageRequestOptionsResizeModeNone;
+        options.networkAccessAllowed = YES;
+
+        [self.imageManager requestImageDataForAsset:asset
+                                            options:options
+                                      resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
+                                          dispatch_async(dispatch_get_main_queue(), ^{
+                                              [weakself.downloadingAssets removeObject:asset];
+                                              [cell.activityIndicatorView stopAnimating];
+
+                                              if (!imageData) {
+                                                  UIAlertController *alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Cannot Download Photo", nil)
+                                                                                                                           message:NSLocalizedString(@"There was an error downloading this item from your iCloud Library. Please try again later.", nil)
+                                                                                                                    preferredStyle:UIAlertControllerStyleAlert];
+                                                  [alertController addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"Ok", nil) style:UIAlertActionStyleDefault handler:nil]];
+                                                  [weakself presentViewController:alertController animated:YES completion:nil];
+                                              }
+                                          });
+                                      }];
+    }
 }
 
 @end
