@@ -743,7 +743,10 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
                                     resultHandler:^(AVAsset * _Nullable asset, AVAudioMix * _Nullable audioMix, NSDictionary * _Nullable info) {
                                         dispatch_async(dispatch_get_main_queue(), ^{
                                             [weakself.downloadingAssets removeObject:asset];
-                                            [cell.activityIndicatorView stopAnimating];
+
+                                            NSInteger item = [weakself.fetchResult indexOfObject:asset];
+                                            NSIndexPath *indexPath = [NSIndexPath indexPathForItem:item inSection:0];
+                                            [weakself.collectionView reloadItemsAtIndexPaths:@[indexPath]];
 
                                             if (!asset) {
                                                 UIAlertController *alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Cannot Download Video", nil)
@@ -767,7 +770,10 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
                                       resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
                                           dispatch_async(dispatch_get_main_queue(), ^{
                                               [weakself.downloadingAssets removeObject:asset];
-                                              [cell.activityIndicatorView stopAnimating];
+
+                                              NSInteger item = [weakself.fetchResult indexOfObject:asset];
+                                              NSIndexPath *indexPath = [NSIndexPath indexPathForItem:item inSection:0];
+                                              [weakself.collectionView reloadItemsAtIndexPaths:@[indexPath]];
 
                                               if (!imageData) {
                                                   UIAlertController *alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Cannot Download Photo", nil)
