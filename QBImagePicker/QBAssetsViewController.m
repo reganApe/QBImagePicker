@@ -740,7 +740,7 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
 
         [self.imageManager requestAVAssetForVideo:asset
                                           options:options
-                                    resultHandler:^(AVAsset * _Nullable asset, AVAudioMix * _Nullable audioMix, NSDictionary * _Nullable info) {
+                                    resultHandler:^(AVAsset * _Nullable avAsset, AVAudioMix * _Nullable audioMix, NSDictionary * _Nullable info) {
                                         dispatch_async(dispatch_get_main_queue(), ^{
                                             [weakself.downloadingAssets removeObject:asset];
 
@@ -748,7 +748,7 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
                                             NSIndexPath *indexPath = [NSIndexPath indexPathForItem:item inSection:0];
                                             [weakself.collectionView reloadItemsAtIndexPaths:@[indexPath]];
 
-                                            if (!asset) {
+                                            if (!avAsset) {
                                                 UIAlertController *alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Cannot Download Video", nil)
                                                                                                                          message:NSLocalizedString(@"There was an error downloading this item from your iCloud Library. Please try again later.", nil)
                                                                                                                   preferredStyle:UIAlertControllerStyleAlert];
